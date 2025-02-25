@@ -1,62 +1,67 @@
-
 # Weather API
 
-This is a FastAPI-based weather API that allows you to fetch weather information for cities, process weather data asynchronously with Celery, and store the results in JSON format. It integrates with Redis as a message broker for task queuing.
+**Weather API** is an asynchronous service based on **FastAPI** that allows fetching weather information for cities, processing it via **Celery**, and storing the results in **JSON**. The API uses **Redis** as a message broker for task queuing.
 
-## Features
-- Fetch weather data for multiple cities.
-- Asynchronous processing of weather data with Celery.
-- Stores results in JSON files, organized by region.
-- Supports status checking for tasks.
-- Handles errors for invalid cities (incorrect city names are logged and saved separately).
+---
+## ✨ Features
+- Fetch weather data for multiple cities simultaneously.
+- Asynchronous request processing using Celery.
+- Store results in JSON files, organized by region.
+- Check task execution status.
+- Handle errors for incorrect city names (logging and saving to files).
 
-## Requirements
-- Docker
-- Docker Compose
-- Python 3.9+
+---
+## 🛠️ Requirements
+- **Docker**
+- **Docker Compose**
+- **Python 3.9+**
+- **Celery**
 
-## Setup and Installation
+---
+## ⚙️ Setup & Installation
 
-1. **Create a `.env` file** for environment variables. The file should include the following:
+### 1. **Create a `.env` file** to store environment variables.
 
-   ```
+   ```ini
    API_KEY=your_openweathermap_api_key
    ```
 
-2. **Build and run the application using Docker Compose**:
+### 2. **Run the application using Docker Compose**:
 
-   ```bash
+   ```sh
    docker-compose up --build
    ```
 
-3. **Access the API**: The API will be available at [http://localhost:8000](http://localhost:8000).
+### 3. **Access the API**:
+The API will be available at: [http://localhost:8000](http://localhost:8000)
 
-4. **Access Celery worker logs**: The Celery worker logs can be accessed at:
+### 4. **View Celery Worker logs**:
 
-   ```bash
+   ```sh
    docker logs weather-celery
    ```
 
-## API Endpoints
+---
+## 🔍 API Endpoints
 
-### 1. POST `/weather`
-- **Description**: Start the task to fetch weather data for multiple cities.
-- **Request Body**:
+### 1. **POST `/weather`**
+- **Description**: Creates a task to fetch weather data for multiple cities.
+- **Example Request**:
   ```json
   {
-    "cities": ["City1", "City2", "City3"]
+    "cities": ["Kyiv", "London", "New York"]
   }
   ```
-- **Response**:
+- **Example Response**:
   ```json
   {
     "task_id": "generated_task_id"
   }
   ```
 
-### 2. GET `/tasks/{task_id}`
-- **Description**: Check the status of a task.
-- **Response**:
+### 2. **GET `/tasks/{task_id}`**
+- **Description**: Checks the execution status of a task.
+- **Example Response**:
   ```json
   {
     "task_id": "generated_task_id",
@@ -65,9 +70,9 @@ This is a FastAPI-based weather API that allows you to fetch weather information
   }
   ```
 
-### 3. GET `/results/{region}`
-- **Description**: Fetch the weather data for a specific region.
-- **Response**:
+### 3. **GET `/results/{region}`**
+- **Description**: Retrieves stored weather data for a specific region.
+- **Example Response**:
   ```json
   {
     "region": "Europe",
@@ -75,76 +80,79 @@ This is a FastAPI-based weather API that allows you to fetch weather information
   }
   ```
 
-## Troubleshooting
-- **If the API does not show the latest files**: Ensure the volumes are correctly mounted, and Docker containers are properly configured to share files between the Celery worker and the API.
-# Weather Data Processing API with FastAPI, Celery, and Redis
+---
+## 🔧 Celery: Configuration & Key Commands
 
-## Common Issues and Solutions
+### **1. Start Celery Worker**
+Run Celery Worker to process tasks:
 
-### 1. **Issue: Celery tasks not updating the results correctly**
-   **Problem**: Sometimes, Celery workers may not update the status or results correctly, causing the API to not reflect the latest changes.
-   **Solution**:
-   - Ensure that the task results are being stored properly in the backend (in this case, Redis).
-   - Make sure you're using the correct Celery result backend (`CELERY_RESULT_BACKEND=redis://redis:6379/0`).
-   - Double-check that the task is not failing silently. Add logging inside your Celery task to monitor the progress and detect any errors.
+```sh
+celery -A app.tasks worker --loglevel=info
+```
 
-### 2. **Issue: New files are not being detected by the API**
-   **Problem**: When new weather data is saved by the Celery worker, the API container cannot detect the newly created files.
-   **Solution**:
-   - This issue often arises because Docker volumes are not shared properly between containers. In your case, Celery is writing files to the local filesystem, but the API cannot access them.
-   - **Fix**: Ensure that the volumes in the `docker-compose.yml` file are set up correctly to allow file sharing between containers.
-     - Example:
-       ```yaml
-       volumes:
-         - .:/app
-       ```
-   - This ensures that the API container can access files written by Celery as both services are mounted to the same volume.
+### **2. Start Celery Beat (Task Scheduler)**
+If you need scheduled task execution, start Celery Beat:
 
-### 3. **Issue: The API is not able to read from the mounted volume**
-   **Problem**: The API may not be able to access the files even though the Docker volume is set up.
-   **Solution**:
-   - Make sure the permissions on the shared directory are correct. If necessary, set the correct file access permissions for the API container.
-   - You may need to rebuild the containers after changing the `docker-compose.yml` file to ensure the volume is mounted correctly.
+```sh
+celery -A app.tasks beat --loglevel=info
+```
 
-### 4. **Issue: Redis container is not running**
-   **Problem**: Celery workers and the API rely on Redis for message queuing and task result storage. If Redis is not running, the tasks will fail.
-   **Solution**:
-   - Make sure that Redis is properly started and running in your Docker container. You can check its status by running `docker ps` and looking for the Redis container.
-   - Check if there are any connectivity issues between the services (API, Celery, Redis). You may want to add debugging logs in the `weather-api` and `celery` services to confirm they can connect to Redis.
+### **3. Check Task Queue**
+To check active tasks in the queue, use:
 
-### 5. **Issue: Task fails with HTTP errors (404 or 500)**
-   **Problem**: Tasks that involve fetching weather data from an external API may fail due to HTTP errors like 404 (city not found) or 500 (server error).
-   **Solution**:
-   - Handle the HTTP status errors in your task to ensure that failed tasks don't crash the worker. You can log the error and handle specific status codes, like 404 for a city not found.
-   - Implement retries for transient errors or HTTP 500, so the task can try again after a short delay.
-   - Example code for handling HTTP errors:
-     ```python
-     except httpx.HTTPStatusError as http_exc:
-         if http_exc.response.status_code == 404:
-             logging.error(f"City not found: {city}")
-         else:
-             logging.error(f"HTTP error: {str(http_exc)}")
-         raise
-     ```
+```sh
+celery -A app.tasks inspect active
+```
 
-### 6. **Issue: Task result is not updated in the API**
-   **Problem**: The API may not reflect the result of the Celery task if the task is not properly updating its state in Redis.
-   **Solution**:
-   - Ensure that the Celery task updates its state with the `update_state` method after completing. Use `task.update_state(state='SUCCESS', meta={'result': result})` to ensure the task result is stored and accessible.
-   - Verify that the task ID used to check for the task status in the API matches the one passed to Celery when calling `apply_async`.
+### **4. Clear Task Queue**
+To remove all pending tasks:
 
-### 7. **Issue: API is showing an empty list of weather data**
-   **Problem**: The API might show an empty list of weather data even though the Celery task has completed successfully.
-   **Solution**:
-   - Verify that the results data from the Celery task is being saved in the correct directory. If you use directories for regions, make sure the path and filenames are correct.
-   - Check that the directory and files have the proper permissions and are accessible from the API container.
+```sh
+celery -A app.tasks purge
+```
 
-### 8. **Issue: Celery worker crashes or doesn't start**
-   **Problem**: The Celery worker may fail to start due to misconfiguration or missing dependencies.
-   **Solution**:
-   - Ensure that the `celery` command in your `docker-compose.yml` is correct. It should look like:
-     ```yaml
-     command: celery -A app.tasks worker -P gevent --loglevel=info
-     ```
-   - Check the logs of the Celery container using `docker logs weather-celery` to see any error messages or misconfigurations.
-   - Ensure that all required dependencies (like `gevent` for concurrency) are installed in your container environment.
+---
+## 🛠️ Troubleshooting Common Issues
+
+### **1. Celery does not update results**
+- Ensure Celery is using the correct `CELERY_RESULT_BACKEND=redis://redis:6379/0`.
+- Add logging inside Celery tasks to track execution.
+
+### **2. API does not detect new files**
+- In `docker-compose.yml`, ensure **API** and **Celery Worker** share the same `volumes`:
+  ```yaml
+  volumes:
+    - .:/app
+  ```
+- This ensures that both API and Celery work on the same file system.
+
+### **3. Redis is not running**
+- Check if Redis is running using `docker ps`.
+- If Redis is not running, start it manually:
+  ```sh
+  docker-compose up redis
+  ```
+
+### **4. API does not retrieve task results**
+- Use `task.update_state(state='SUCCESS', meta={'result': result})` to ensure Celery updates the task status.
+- Verify that the `task_id` in the request matches the one passed to Celery via `apply_async`.
+
+### **5. Celery Worker does not start**
+- Check if all dependencies are installed.
+- Use the command:
+  ```sh
+  docker logs weather-celery
+  ```
+  to view possible errors.
+- Ensure Celery is started with the correct command in `docker-compose.yml`:
+  ```yaml
+  command: celery -A app.tasks worker --loglevel=info
+  ```
+
+---
+## 📃 License
+This project is distributed under the MIT License.
+
+---
+**🛠️ Ready to go!** Your Weather API is now set up and ready for use! 🚀
+
