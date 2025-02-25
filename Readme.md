@@ -148,5 +148,3 @@ This is a FastAPI-based weather API that allows you to fetch weather information
      ```
    - Check the logs of the Celery container using `docker logs weather-celery` to see any error messages or misconfigurations.
    - Ensure that all required dependencies (like `gevent` for concurrency) are installed in your container environment.
-
-### 9. **Issue:
