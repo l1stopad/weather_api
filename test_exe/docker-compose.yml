@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: weather-api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - weather_data:/app/weather_data
+
+  redis:
+    image: redis:latest
+    container_name: weather-redis
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    container_name: weather-celery
+    command: celery -A app.tasks worker -P gevent --loglevel=info
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - .:/app
+      - weather_data:/app/weather_data
+
+volumes:
+  weather_data:
+
+

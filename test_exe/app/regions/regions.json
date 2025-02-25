@@ -1,0 +1,8 @@
+{
+  "Europe": ["Kyiv", "London", "Paris", "Berlin", "Madrid", "Rome", "Warsaw", "Vienna"],
+  "Asia": ["Tokyo", "Beijing", "Seoul", "Bangkok", "Singapore", "Mumbai", "Jakarta", "Hanoi"],
+  "North America": ["New York", "Los Angeles", "Toronto", "Chicago", "Mexico City"],
+  "South America": ["Buenos Aires", "Lima", "Bogotá"],
+  "Africa": ["Cairo", "Johannesburg", "Lagos", "Nairobi", "Cape Town"],
+  "Oceania": ["Sydney", "Melbourne", "Auckland", "Perth", "Brisbane"]
+}
